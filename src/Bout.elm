@@ -1,4 +1,8 @@
-module Bout exposing (BoutType(..), Bout, intToBoutType)
+module Bout exposing (Bout, BoutType(..), intToBoutType, viewBouts)
+
+import Competition exposing (Competition, getCompetition, getCompetitionName)
+import Fencer exposing (Fencer, getFencerNameAtIndex)
+import Html.Styled exposing (Html, div, p, text)
 
 
 type alias Bout =
@@ -24,3 +28,16 @@ intToBoutType int =
 
     else
         Pool
+
+
+viewBout : Bout -> List Fencer -> List Competition -> Html msg
+viewBout { winnerID, loserID, winnerScore, loserScore, boutType, eventID, competitionID } fencers competitions =
+    div []
+        [ p [] [ text <| getFencerNameAtIndex winnerID fencers ++ " " ++ String.fromInt winnerScore ++ ":" ++ String.fromInt loserScore ++ " " ++ getFencerNameAtIndex loserID fencers ]
+        , p [] [ text <| getCompetitionName <| getCompetition competitionID competitions ]
+        ]
+
+
+viewBouts : List Bout -> List Fencer -> List Competition -> Html msg
+viewBouts bouts fencers competitions =
+    div [] (List.map (\bout -> viewBout bout fencers competitions) bouts)

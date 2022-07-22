@@ -1,10 +1,10 @@
 module SearchBar exposing (SearchData, SearchResult(..), initSearchData, updateSearchText, viewSearchBar)
 
-import Css exposing (absolute, alignItems, backgroundColor, borderBottom3, borderLeft3, borderRight3, borderTop3, center, column, cursor, displayFlex, flexDirection, hex, left, minWidth, paddingBottom, paddingLeft, paddingTop, pct, pointer, position, px, solid, textAlign, vw)
+import Css exposing (hover, absolute, color, margin, padding, alignItems, backgroundColor, borderBottom3, borderLeft3, borderRight3, borderTop3, center, column, cursor, displayFlex, flexDirection, hex, left, maxWidth, width, paddingBottom, paddingLeft, paddingTop, pct, pointer, position, px, solid, textAlign, maxWidth, em)
 import ElmTextSearch
 import Fencer exposing (Fencer, getFencerNameAtIndex)
 import Html.Styled exposing (Html, div, input, p, text)
-import Html.Styled.Attributes exposing (css, tabindex, value)
+import Html.Styled.Attributes exposing (css, value, placeholder)
 import Html.Styled.Events exposing (onBlur, onFocus, onInput, onMouseDown)
 import Json.Decode as D
 
@@ -53,13 +53,13 @@ searchConfig =
 
 viewSearchBar : SearchData -> List Fencer -> (String -> msg) -> (String -> msg) -> msg -> msg -> Html msg
 viewSearchBar searchData fencers onMouseDownMessage updateSearchMessage focusSearch unFocusSearch =
-    div []
-        [ input [ value searchData.searchText, onInput updateSearchMessage, css [ Css.width (pct 100) ], onFocus focusSearch, onBlur unFocusSearch ] []
+    div [css [color (hex ("#17181c")), width (em 40)]]
+        [ input [ value searchData.searchText, placeholder "John Smith", onInput updateSearchMessage, css [ Css.width (pct 100), padding (em 1) ], onFocus focusSearch, onBlur unFocusSearch ] []
         , case searchData.searchResult of
             SearchSuccess result ->
                 if searchData.focused then
                     div
-                        [ css [ position absolute, Css.width (pct 100), displayFlex, alignItems center, flexDirection column, borderLeft3 (px 2) solid (hex "#36454F"), borderRight3 (px 2) solid (hex "#36454F"), borderBottom3 (px 2) solid (hex "#36454F"), Css.width (vw 33), minWidth (px 900) ] ]
+                        [ css [ position absolute, Css.width (em 40), alignItems center, flexDirection column, maxWidth (em 60)] ]
                         (List.map
                             (\( id, _ ) -> viewSearchResult (onMouseDownMessage id) (getFencerNameAtIndex id fencers))
                             (List.take 6 result)
@@ -79,8 +79,8 @@ viewSearchBar searchData fencers onMouseDownMessage updateSearchMessage focusSea
 viewSearchResult : msg -> String -> Html msg
 viewSearchResult clickMsg fencerName =
     div
-        [ onMouseDown clickMsg, css [ cursor pointer, backgroundColor (hex "#E5E4E2"), paddingTop (px 4), paddingBottom (px 4), borderTop3 (px 2) solid (hex "#36454F"), borderLeft3 (px 2) solid (hex "#36454F"), borderRight3 (px 2) solid (hex "#36454F"), Css.width (pct 100) ] ]
-        [ div [ tabindex 0, css [ textAlign left, paddingLeft (px 4) ] ] [ p [] [ text fencerName ] ] ]
+        [ onMouseDown clickMsg, css [ hover [backgroundColor (hex "#d9d8d7")] ,cursor pointer, backgroundColor (hex "#fafafa"), paddingTop (px 4), paddingBottom (px 4) ] ]
+        [ div [ css [ textAlign left, padding (em 1) ] ] [ p [css [margin (px 0)]] [ text fencerName ] ] ]
 
 
 updateSearchText : String -> SearchData -> SearchData

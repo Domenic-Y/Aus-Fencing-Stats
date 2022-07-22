@@ -1,11 +1,11 @@
 module SingleFencerPage exposing (viewSingleFencerPage)
 
 import AFFData exposing (AFFData)
-import Bout exposing (Bout)
+import Bout exposing (Bout, viewBouts)
 import Chart as C
 import Chart.Attributes as CA
 import Competition exposing (Competition, competitonToYear, getCompetition)
-import Css exposing (ColorValue, alignItems, auto, backgroundColor, borderRadius, center, displayFlex, fontFamilies, hex, justifyContent, margin, marginBottom, padding, px, textAlign, vw)
+import Css exposing (ColorValue, alignItems, auto, backgroundColor, borderRadius, center, displayFlex, fontFamilies, hex, justifyContent, margin, marginBottom, padding, px, textAlign, vw, maxWidth, em, maxWidth)
 import Dict
 import Fencer exposing (Fencer, getFencerWithId)
 import Html.Styled exposing (Attribute, Html, div, h1, h2, h3, styled, text)
@@ -31,8 +31,8 @@ viewSingleFencerPage maybeFencer data =
                 boutsAll =
                     boutsLost ++ boutsWon
             in
-            div [ css [ Css.width (px 900) ] ]
-                [ h1 [] [ text fencer.fencerName ]
+            div [ css [ maxWidth (em 60) ] ]
+                [ h1 [] [ text <| Fencer.firstNameLastName <| fencer ]
                 , div [] [ h3 [] [ text <| String.fromInt (List.length boutsAll) ++ " Bouts Fenced 🤺" ] ]
                 , div [] [ h3 [] [ text <| String.fromInt (List.length boutsWon) ++ " Bouts Won 🏆" ] ]
                 , div [] [ h3 [] [ text <| String.fromInt (List.length boutsLost) ++ " Bouts Lost 😕" ] ]
@@ -42,7 +42,8 @@ viewSingleFencerPage maybeFencer data =
                     [ div [] [ h3 [] [ text "Most Victories Over" ], div [] <| List.map (\( id, _ ) -> nameBadgeGreen <| getFencerWithId id data.fencers) <| List.take 3 <| List.sortBy (\tuple -> Tuple.second tuple) <| Dict.toList <| countFencers <| List.map (\bout -> bout.loserID) <| boutsWon ]
                     , div [] [ h3 [] [ text "Most Defeated By" ], div [] <| List.map (\( id, _ ) -> nameBadgeRed <| getFencerWithId id data.fencers) <| List.take 3 <| List.sortBy (\tuple -> Tuple.second tuple) <| Dict.toList <| countFencers <| List.map (\bout -> bout.winnerID) <| boutsLost ]
                     ]
-                , div [ css [ Css.width (vw 30), Css.height (vw 10), margin auto, marginBottom (px 300) ] ] [ h2 [] [ text "Cumulative Indicator" ], h3 [] [ text "= Points Scored − Points Recieved" ], indicatorChart boutsWon boutsLost data.competitions ]
+                , div [ css [ maxWidth (em 60), Css.height (vw 10), margin auto, marginBottom (px 300) ] ] [ h2 [] [ text "Cumulative Indicator" ], h3 [] [ text "= Points Scored − Points Recieved" ], indicatorChart boutsWon boutsLost data.competitions ]
+                , viewBouts (List.filter (\bout -> fencer.id == bout.winnerID || fencer.id == bout.loserID) data.bouts) data.fencers data.competitions
                 ]
 
         Nothing ->
@@ -64,7 +65,7 @@ indicatorChart boutsWon boutsLost comps =
             , C.series .x
                 [ C.interpolated .y [] [ CA.circle, CA.size 10 ]
                 ]
-                (accumulatePrevious <| List.map2 (\( x1, pointsScored ) ( _, pointsLost ) -> { x = toFloat x1, y = toFloat (pointsScored - pointsLost) }) (Dict.toList <| countIndicatorPerYear boutsWon comps) (Dict.toList <| countIndicatorPerYear boutsLost comps))
+                (accumulatePrevious <| List.map (\( year, indicator) -> { x = toFloat year, y = toFloat indicator }) <| Dict.toList <| mergeIndicators (countIndicatorPerYear boutsWon comps) (countIndicatorPerYear boutsLost comps))
             ]
 
 
@@ -92,13 +93,14 @@ nameBadgeElement : ColorValue compatible -> List (Attribute msg) -> List (Html m
 nameBadgeElement color =
     styled div
         [ backgroundColor color
-        , Css.width (vw 10)
+        , maxWidth (em 15)
         , borderRadius (px 20)
         , margin (px 10)
         , fontFamilies [ "Verdana", "Arial" ]
         , padding (px 5)
         , textAlign center
         , Css.color (hex "#342B40")
+        , padding (em 1)
         ]
 
 
@@ -106,7 +108,7 @@ nameBadge : ColorValue compatible -> Maybe Fencer -> Html msg
 nameBadge color maybeFencer =
     case maybeFencer of
         Just fencer ->
-            nameBadgeElement color [] [ text fencer.fencerName ]
+            nameBadgeElement color [] [ text <| Fencer.firstNameLastName <| fencer]
 
         Nothing ->
             text "Fencer Not Found :("
@@ -128,20 +130,31 @@ countIndicatorPerYear bouts comps =
         |> List.foldr
             (\bout carry ->
                 Dict.update
-                    (Maybe.withDefault 2010 <| Maybe.andThen competitonToYear <| (\id -> getCompetition id comps) <| bout.competitionID)
+                    (Maybe.withDefault 2000 <| Maybe.andThen competitonToYear <| (\id -> getCompetition id comps) <| bout.competitionID)
                     (\existingCount ->
                         case existingCount of
                             Just count ->
                                 Just (count + (bout.winnerScore - bout.loserScore))
 
                             Nothing ->
-                                Just 0
+                                Just (bout.winnerScore - bout.loserScore)
                     )
                     carry
             )
             Dict.empty
 
 
+mergeIndicators : Dict.Dict Int Int -> Dict.Dict Int Int -> Dict.Dict Int Int
+mergeIndicators dictA dictB =
+    Dict.merge
+        (\key a -> Dict.insert key a)
+        (\key a b -> Dict.insert key (a - b))
+        (\key b -> Dict.insert key b)
+        dictA
+        dictB
+        Dict.empty
+
 accumulatePrevious : List { x : Float, y : Float } -> List { x : Float, y : Float }
 accumulatePrevious list =
     List.indexedMap (\i data -> { x = data.x, y = List.sum (List.take i (List.map .y list)) }) list
+

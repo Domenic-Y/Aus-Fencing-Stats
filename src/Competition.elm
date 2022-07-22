@@ -1,4 +1,4 @@
-module Competition exposing (Competition, competitonToYear, getCompetition)
+module Competition exposing (Competition, competitonToYear, getCompetition, getCompetitionName)
 
 
 type alias Competition =
@@ -34,3 +34,13 @@ competitonToYear comp =
 
     else
         Nothing
+
+
+getCompetitionName : Maybe Competition -> String
+getCompetitionName maybeComp =
+    case maybeComp of
+        Just comp ->
+            comp.competitionName
+
+        Nothing ->
+            "Comp not found"
